@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prism Monitor · HMD Console</title>
+<style>
+:root {
+  --bg: #f4f5f7;
+  --card: #ffffff;
+  --line: #e4e6eb;
+  --line-subtle: #f0f2f5;
+  --fg: #1f2328;
+  --fg2: #6b7280;
+  --blue: #2f6feb;
+  --purple: #8b5cf6;
+  --cyan: #0ea5e9;
+  --red: #dc2626;
+  --green: #16a34a;
+  --orange: #ea8b1f;
+  --amber: #f59e0b;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: var(--bg);
+  color: var(--fg);
+  font: 13.5px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 24px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+header h1 {
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+header h1 .logo {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  vertical-align: middle;
+}
+header h1 #sub {
+  color: var(--fg2);
+  font-weight: 400;
+  font-size: 12px;
+}
+.ranges {
+  display: flex;
+  background: var(--bg);
+  border-radius: 6px;
+  padding: 2px;
+  gap: 2px;
+}
+.ranges button {
+  border: none;
+  background: transparent;
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--fg2);
+  font-weight: 500;
+  transition: all 0.15s;
+}
+.ranges button:hover {
+  color: var(--fg);
+}
+.ranges button.on {
+  background: var(--card);
+  color: var(--blue);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+  font-weight: 600;
+}
+.meta {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 12px;
+  color: var(--fg2);
+}
+.dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  margin-right: 5px;
+}
+.dot.err { background: var(--red); }
+main {
+  max-width: 1560px;
+  margin: 0 auto;
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 顶部 6 张紧凑数字卡 */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
+}
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+.card .k {
+  font-size: 11.5px;
+  color: var(--fg2);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.card .v {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--fg);
+  font-family: ui-monospace, "SF Mono", "Segoe UI Mono", monospace;
+  letter-spacing: -0.5px;
+}
+.card .v small {
+  font-size: 12px;
+  font-weight: 500;
+  margin-left: 2px;
+  color: var(--fg2);
+}
+.card .s {
+  font-size: 11px;
+  color: var(--fg2);
+  margin-top: 4px;
+  font-family: ui-monospace, monospace;
+}
+
+/* 下方 8 块图表面板网格 */
+.charts {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+}
+.panel {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px 16px 10px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+.panel h2 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+}
+.panel h2 em {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 11.5px;
+  color: var(--fg2);
+}
+.legend {
+  display: flex;
+  gap: 14px;
+  font-size: 11.5px;
+  color: var(--fg2);
+  margin-bottom: 8px;
+  min-height: 18px;
+  flex-wrap: wrap;
+}
+.legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.legend i {
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  border-radius: 2px;
+}
+.legend b {
+  font-weight: 600;
+  color: var(--fg);
+  font-family: ui-monospace, monospace;
+}
+.cvs {
+  position: relative;
+  height: 155px;
+  width: 100%;
+}
+.cvs canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  cursor: crosshair;
+}
+
+@media (max-width: 1100px) {
+  .cards { grid-template-columns: repeat(3, 1fr); }
+  .charts { grid-template-columns: 1fr; }
+}
+@media (max-width: 600px) {
+  .cards { grid-template-columns: repeat(2, 1fr); }
+  header { padding: 12px 16px; }
+  main { padding: 12px 16px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>
+    <svg class="logo" viewBox="0 0 24 24" fill="none">
+      <path d="M12 2L22 8.5L12 15L2 8.5L12 2Z" fill="#2f6feb"/>
+      <path d="M2 8.5V15.5L12 22V15L2 8.5Z" fill="#1e40af"/>
+      <path d="M22 8.5V15.5L12 22V15L22 8.5Z" fill="#172554"/>
+    </svg>
+    <span id="ttl">Prism Monitor (HMD)</span>
+    <span id="sub">主机监控</span>
+  </h1>
+  <div class="ranges" id="ranges"></div>
+  <div class="meta">
+    <span><span class="dot" id="dot"></span><span id="stateText">连接中...</span></span>
+    <span id="updated">--</span>
+  </div>
+</header>
+
+<main>
+  <section class="cards" id="cards"></section>
+  <section class="charts" id="charts"></section>
+</main>
+
+<script>
+"use strict";
+
+const RANGES = {
+  "15m": 15 * 60,
+  "1h": 3600,
+  "6h": 6 * 3600,
+  "24h": 24 * 3600,
+  "7d": 7 * 86400,
+  "30d": 30 * 86400
+};
+let currentRange = "1h";
+let timer = null;
+const state = {};
+
+// 顶部 6 张数字卡定义
+const CARDS = [
+  { key: "cpu", label: "CPU 使用率", unit: "%", digits: 1 },
+  { key: "steal", label: "CPU Steal (抢占)", unit: "%", digits: 2 },
+  { key: "mem", label: "内存使用率", unit: "%", digits: 1 },
+  { key: "swap", label: "SWAP 占用", unit: "%", digits: 1 },
+  { key: "load", label: "1 分钟负载", unit: "", digits: 2 },
+  { key: "root", label: "根分区使用", unit: "%", digits: 1 }
+];
+
+// 下方 8 个图表面板定义
+const PANELS = [
+  {
+    title: "CPU 使用率趋势", sub: "total", unit: "%", min: 0, max: 100,
+    metrics: [
+      { name: "使用率", color: "#2f6feb", key: "cpu.total" },
+      { name: "Steal (抢占)", color: "#ea8b1f", key: "cpu.steal" },
+      { name: "iowait", color: "#dc2626", key: "cpu.iowait" }
+    ]
+  },
+  {
+    title: "内存使用率趋势", sub: "physical", unit: "%", min: 0, max: 100,
+    metrics: [
+      { name: "内存 %", color: "#8b5cf6", key: "mem.pct" },
+      { name: "SWAP %", color: "#0ea5e9", key: "swap.pct" }
+    ]
+  },
+  {
+    title: "系统平均负载", sub: "loadavg", unit: "", min: 0,
+    metrics: [
+      { name: "1 分钟", color: "#2f6feb", key: "cpu.load1" }
+    ]
+  },
+  {
+    title: "磁盘 IO 吞吐", sub: "吞吐 (B/s)", unit: "B/s", min: 0,
+    metrics: [
+      { name: "读速率", color: "#16a34a", key: "disk.sda.read_bps" },
+      { name: "写速率", color: "#ea8b1f", key: "disk.sda.write_bps" }
+    ]
+  },
+  {
+    title: "磁盘平均延迟 (await)", sub: "毫秒", unit: "ms", min: 0,
+    metrics: [
+      { name: "延迟", color: "#dc2626", key: "disk.sda.await_ms" }
+    ]
+  },
+  {
+    title: "网络吞吐", sub: "吞吐 (B/s)", unit: "B/s", min: 0,
+    metrics: [
+      { name: "下行 (Rx)", color: "#2f6feb", key: "net.eth0.rx_bps" },
+      { name: "上行 (Tx)", color: "#0ea5e9", key: "net.eth0.tx_bps" }
+    ]
+  },
+  {
+    title: "SWAP 页面换入/换出速率", sub: "B/s", unit: "B/s", min: 0,
+    metrics: [
+      { name: "换入", color: "#0ea5e9", key: "swap.in_bps" },
+      { name: "换出", color: "#ea8b1f", key: "swap.out_bps" }
+    ]
+  },
+  {
+    title: "磁盘各挂载点占用率", sub: "容量占比", unit: "%", min: 0, max: 100,
+    metrics: [
+      { name: "根分区 (/)", color: "#2f6feb", key: "mount._root.pct" },
+      { name: "数据分区 (/data 或 /var)", color: "#8b5cf6", key: "mount._var.pct" }
+    ]
+  }
+];
+
+function buildUI() {
+  document.getElementById("ranges").innerHTML = Object.keys(RANGES)
+    .map(k => `<button data-r="${k}" class="${k === currentRange ? 'on' : ''}">${k}</button>`)
+    .join("");
+
+  document.querySelectorAll("#ranges button").forEach(b => {
+    b.onclick = () => {
+      currentRange = b.dataset.r;
+      document.querySelectorAll("#ranges button").forEach(x => x.classList.toggle("on", x.dataset.r === currentRange));
+      refresh();
+    };
+  });
+
+  document.getElementById("cards").innerHTML = CARDS.map(c => `
+    <div class="card">
+      <div class="k">${c.label}</div>
+      <div class="v" id="card-${c.key}">—</div>
+      <div class="s" id="card-${c.key}-s"></div>
+    </div>
+  `).join("");
+
+  document.getElementById("charts").innerHTML = PANELS.map((p, i) => `
+    <div class="panel">
+      <h2><span>${p.title}</span><em>${p.sub || ''}</em></h2>
+      <div class="legend" id="lg-${i}"></div>
+      <div class="cvs"><canvas id="cv-${i}"></canvas></div>
+    </div>
+  `).join("");
+
+  PANELS.forEach((p, i) => {
+    const cv = document.getElementById("cv-" + i);
+    cv.addEventListener("mousemove", ev => {
+      const rect = cv.getBoundingClientRect();
+      const st = state[i];
+      if (!st || !st.span) return;
+      const padL = 46, padR = 8;
+      const ratio = (ev.clientX - rect.left - padL) / (rect.width - padL - padR);
+      const t = st.t0 + ratio * st.span;
+      st.hoverT = t;
+      draw(cv, st.lines, Object.assign({}, st.opts, { hoverT: t }));
+      st.lines.forEach((l, j) => {
+        let best = null, bd = Infinity;
+        for (const pt of l.points) {
+          const d = Math.abs(pt[0] - t);
+          if (d < bd) { bd = d; best = pt; }
+        }
+        const el = document.getElementById(`lg-${i}-${j}`);
+        if (el && best) el.textContent = fmtVal(best[1], p.unit);
+      });
+    });
+
+    cv.addEventListener("mouseleave", () => {
+      const st = state[i];
+      if (!st) return;
+      st.hoverT = null;
+      draw(cv, st.lines, st.opts);
+      st.lines.forEach((l, j) => {
+        const el = document.getElementById(`lg-${i}-${j}`);
+        const last = l.points.length ? l.points[l.points.length - 1][1] : null;
+        if (el) el.textContent = fmtVal(last, p.unit);
+      });
+    });
+  });
+}
+
+// 核心 Canvas 手绘引擎（带悬停十字线与网格对齐）
+function draw(canvas, lines, opts) {
+  const dpr = window.devicePixelRatio || 1;
+  const box = canvas.parentElement.getBoundingClientRect();
+  const w = Math.max(10, box.width), h = Math.max(10, box.height);
+  canvas.width = w * dpr;
+  canvas.height = h * dpr;
+  const g = canvas.getContext("2d");
+  g.setTransform(dpr, 0, 0, dpr, 0, 0);
+  g.clearRect(0, 0, w, h);
+
+  const padL = 46, padR = 8, padT = 8, padB = 20;
+  const cw = w - padL - padR, ch = h - padT - padB;
+  const all = lines.flatMap(l => l.points);
+
+  if (!all.length) {
+    g.fillStyle = "#9aa1ab";
+    g.font = "12px sans-serif";
+    g.textAlign = "center";
+    g.fillText("无数据", w / 2, h / 2);
+    return;
+  }
+
+  let t0 = Math.min(...all.map(p => p[0])), t1 = Math.max(...all.map(p => p[0]));
+  if (t1 === t0) t1 = t0 + 1;
+
+  let vmin = opts.min, vmax = opts.max;
+  if (vmin === undefined) vmin = Math.min(...all.map(p => p[1]));
+  if (vmax === undefined) vmax = Math.max(...all.map(p => p[1]));
+  if (vmin === vmax) { vmax = vmin + 1; }
+  const pad = (vmax - vmin) * 0.08;
+  if (opts.min === undefined) vmin -= pad;
+  if (opts.max === undefined) vmax += pad;
+
+  // 画 4 条 Y 轴参考水平网格
+  g.strokeStyle = "#e4e6eb";
+  g.lineWidth = 1;
+  g.fillStyle = "#9aa1ab";
+  g.font = "10px ui-monospace, monospace";
+  g.textAlign = "right";
+
+  for (let i = 0; i < 4; i++) {
+    const y = padT + (ch / 3) * i;
+    const v = vmax - ((vmax - vmin) / 3) * i;
+    g.beginPath();
+    g.moveTo(padL, y);
+    g.lineTo(w - padR, y);
+    g.stroke();
+    g.fillText(fmtVal(v, opts.unit, 1), padL - 6, y + 3.5);
+  }
+
+  // 映射函数
+  const xOf = t => padL + ((t - t0) / (t1 - t0)) * cw;
+  const yOf = v => padT + ch - ((v - vmin) / (vmax - vmin)) * ch;
+
+  // 绘制数据折线
+  lines.forEach(l => {
+    if (l.points.length < 2) return;
+    g.strokeStyle = l.color;
+    g.lineWidth = 1.7;
+    g.beginPath();
+    let first = true;
+    for (const [t, v] of l.points) {
+      const x = xOf(t), y = yOf(v);
+      if (first) { g.moveTo(x, y); first = false; }
+      else { g.lineTo(x, y); }
+    }
+    g.stroke();
+  });
+
+  // 十字准星（悬停位置）
+  if (opts.hoverT !== null && opts.hoverT !== undefined) {
+    const hx = Math.max(padL, Math.min(w - padR, xOf(opts.hoverT)));
+    g.strokeStyle = "rgba(47, 111, 235, 0.4)";
+    g.setLineDash([3, 3]);
+    g.beginPath();
+    g.moveTo(hx, padT);
+    g.lineTo(hx, h - padB);
+    g.stroke();
+    g.setLineDash([]);
+  }
+
+  // X 轴时间标签（首尾两个）
+  g.textAlign = "left";
+  g.fillText(fmtTime(t0), padL, h - 4);
+  g.textAlign = "right";
+  g.fillText(fmtTime(t1), w - padR, h - 4);
+}
+
+function fmtVal(v, unit, digits) {
+  if (v === null || v === undefined || isNaN(v)) return "—";
+  if (unit === "B/s") return fmtBytes(v);
+  if (unit === "ms") return v.toFixed(1) + "ms";
+  const d = digits !== undefined ? digits : (unit === "%" ? 1 : 2);
+  return v.toFixed(d) + (unit ? unit : "");
+}
+
+function fmtBytes(b) {
+  if (!b || b <= 0) return "0 B/s";
+  const u = ["B/s", "KB/s", "MB/s", "GB/s"];
+  let i = 0, n = b;
+  while (n >= 1024 && i < u.length - 1) { n /= 1024; i++; }
+  return n.toFixed(1) + " " + u[i];
+}
+
+function fmtTime(ts) {
+  const d = new Date(ts * 1000);
+  return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+}
+
+async function refresh() {
+  const dot = document.getElementById("dot");
+  const txt = document.getElementById("stateText");
+
+  try {
+    // 1. 获取当前最新快照
+    const snap = await fetch("/api/v1/now").then(r => r.json());
+    document.getElementById("sub").textContent = `${snap.host.hostname} · ${snap.host.os}`;
+
+    // 更新 6 张卡片当前值
+    const cpuTotal = snap.cpu.total;
+    const cpuSteal = snap.cpu.steal;
+    const memPct = snap.mem.pct;
+    const swapPct = snap.swap.pct;
+    const load1 = snap.cpu.load[0];
+    const rootMount = (snap.mounts || []).find(m => m.path === "/") || { pct: 0 };
+
+    setCard("cpu", cpuTotal, "%", 1);
+    setCard("steal", cpuSteal, "%", 2);
+    setCard("mem", memPct, "%", 1);
+    setCard("swap", swapPct, "%", 1);
+    setCard("load", load1, "", 2);
+    setCard("root", rootMount.pct, "%", 1);
+
+    // 2. 并行获取 8 个面板的时序数据
+    await Promise.all(PANELS.map(async (p, i) => {
+      // 动态替换网卡名与挂载路径（自适配真实设备名）
+      const lines = await Promise.all(p.metrics.map(async (m, j) => {
+        let key = m.key;
+        if (key.startsWith("disk.sda.") && snap.disks && snap.disks.length) {
+          key = key.replace("disk.sda.", `disk.${snap.disks[0].dev}.`);
+        }
+        if (key.startsWith("net.eth0.") && snap.nets && snap.nets.length) {
+          key = key.replace("net.eth0.", `net.${snap.nets[0].if}.`);
+        }
+
+        const res = await fetch(`/api/v1/history?metric=${key}&range=${currentRange}`).then(r => r.json()).catch(() => ({ points: [] }));
+        const points = (res.points || []).map(pt => [pt.ts, pt.avg]);
+        return {
+          name: m.name,
+          color: m.color,
+          points: points
+        };
+      }));
+
+      const all = lines.flatMap(l => l.points.map(q => q[0]));
+      const t0 = all.length ? Math.min(...all) : 0;
+      const t1 = all.length ? Math.max(...all) : 0;
+      const st = {
+        lines: lines,
+        t0: t0,
+        span: t1 - t0,
+        opts: { unit: p.unit, min: p.min, max: p.max }
+      };
+      state[i] = st;
+
+      // 渲染图例
+      document.getElementById("lg-" + i).innerHTML = lines.map((l, j) => {
+        const last = l.points.length ? l.points[l.points.length - 1][1] : null;
+        return `<span><i style="background:${l.color}"></i>${l.name} <b id="lg-${i}-${j}">${fmtVal(last, p.unit)}</b></span>`;
+      }).join("");
+
+      draw(document.getElementById("cv-" + i), lines, st.opts);
+    }));
+
+    dot.classList.remove("err");
+    txt.textContent = "正常";
+    document.getElementById("updated").textContent = "更新于 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
+  } catch (e) {
+    dot.classList.add("err");
+    txt.textContent = "连接异常：" + e.message;
+  }
+}
+
+function setCard(key, val, unit, digits) {
+  const el = document.getElementById("card-" + key);
+  if (el) {
+    el.innerHTML = val === null || val === undefined ? "—" :
+      val.toFixed(digits) + (unit ? `<small>${unit}</small>` : "");
+  }
+}
+
+window.addEventListener("resize", () => {
+  PANELS.forEach((p, i) => {
+    const st = state[i];
+    if (st) draw(document.getElementById("cv-" + i), st.lines, st.opts);
+  });
+});
+
+buildUI();
+refresh();
+timer = setInterval(refresh, 10000); // 10s 周期自适应轮询
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden) { clearInterval(timer); timer = null; }
+  else if (!timer) { refresh(); timer = setInterval(refresh, 10000); }
+});
+</script>
+</body>
+</html>
