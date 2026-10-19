@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prism Monitor · 服务器资源监控</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="app">
+    <!-- 侧边栏 -->
+    <aside class="sidebar">
+      <div class="logo-row">
+        <svg class="logo-mark" viewBox="0 0 24 24" fill="none">
+          <path d="M12 2L22 8.5L12 15L2 8.5L12 2Z" fill="#8B5CF6"/>
+          <path d="M2 8.5V15.5L12 22V15L2 8.5Z" fill="#7C3AED"/>
+          <path d="M22 8.5V15.5L12 22V15L22 8.5Z" fill="#5B21B6"/>
+        </svg>
+        <span class="logo-text">Prism Monitor</span>
+      </div>
+
+      <div class="host-card">
+        <span class="host-name" id="hostName">--</span>
+        <span class="host-meta" id="hostMeta">--</span>
+        <div class="host-status">
+          <span class="status-dot pulsing" id="statusDot"></span>
+          <span id="uptimeText">连接中...</span>
+        </div>
+      </div>
+
+      <nav class="nav">
+        <a class="nav-item active" data-view="overview">
+          <svg viewBox="0 0 16 16"><rect x="2" y="2" width="5" height="5" rx="1"/><rect x="9" y="2" width="5" height="5" rx="1"/><rect x="2" y="9" width="5" height="5" rx="1"/><rect x="9" y="9" width="5" height="5" rx="1"/></svg>
+          <span>总览</span>
+        </a>
+        <a class="nav-item" data-view="history">
+          <svg viewBox="0 0 16 16"><circle cx="8" cy="8" r="5.8"/><path d="M8 4.8V8l2.2 1.6" stroke-linecap="round"/></svg>
+          <span>历史趋势</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-foot">v0.1.0 · com.akiraprism</div>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="content">
+      <header class="topbar">
+        <div class="title-group">
+          <span class="page-title" id="pageTitle">总览</span>
+          <span class="page-sub" id="pageSub">实时监控 · 每 2s 刷新</span>
+        </div>
+        <div class="actions">
+          <div class="chip" id="rangeChipWrapper" style="display:none;">
+            <span>时间跨度</span>
+            <select id="timeRangeSelect">
+              <option value="15m">最近 15 分钟</option>
+              <option value="1h" selected>最近 1 小时</option>
+              <option value="6h">最近 6 小时</option>
+              <option value="24h">最近 24 小时</option>
+              <option value="7d">最近 7 天</option>
+              <option value="30d">最近 30 天</option>
+              <option value="90d">最近 90 天</option>
+            </select>
+          </div>
+          <div class="live-badge" id="liveBadge">
+            <span class="dot"></span>
+            <span id="liveText">LIVE</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="main-body">
+        <!-- 视图 1：总览 -->
+        <div class="view-container active" id="view-overview">
+          <!-- 4 指标卡 -->
+          <section class="stats-row">
+            <div class="stat-card">
+              <div class="stat-top">
+                <span class="stat-label">CPU 使用率</span>
+                <span class="delta-chip" id="cpuDelta">--</span>
+              </div>
+              <div class="stat-value" id="cpuValue">--%</div>
+              <div class="stat-bottom">
+                <span class="stat-sub" id="cpuSub">-- 核 · 负载 --</span>
+                <div class="stat-sparkline" id="cpuSpark"></div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-top">
+                <span class="stat-label">内存使用率</span>
+                <span class="delta-chip" id="memDelta">--</span>
+              </div>
+              <div class="stat-value" id="memValue">--%</div>
+              <div class="stat-bottom">
+                <span class="stat-sub" id="memSub">-- / -- GB</span>
+                <div class="stat-sparkline" id="memSpark"></div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-top">
+                <span class="stat-label">磁盘 IO</span>
+                <span class="stat-tag" id="diskTag">--</span>
+              </div>
+              <div class="stat-value" id="diskValue">-- MB/s</div>
+              <div class="stat-bottom">
+                <span class="stat-sub" id="diskSub">读 -- · 写 -- MB/s</span>
+                <div class="stat-sparkline" id="diskSpark"></div>
+              </div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-top">
+                <span class="stat-label">网络吞吐</span>
+                <span class="stat-tag" id="netTag">--</span>
+              </div>
+              <div class="stat-value" id="netValue">-- Mbps</div>
+              <div class="stat-bottom">
+                <span class="stat-sub" id="netSub">↓ -- · ↑ -- Mbps</span>
+                <div class="stat-sparkline" id="netSpark"></div>
+              </div>
+            </div>
+          </section>
+
+          <!-- 2 趋势图 -->
+          <section class="charts-row">
+            <div class="chart-card">
+              <div class="chart-head">
+                <span class="chart-title">CPU 使用率趋势</span>
+                <div class="chart-legend">
+                  <div class="legend-item"><span class="legend-dot" style="background:#8B5CF6"></span><span>使用率</span></div>
+                  <div class="legend-item"><span class="legend-dot" style="background:#F59E0B"></span><span>Steal</span></div>
+                  <div class="legend-item"><span class="legend-dot" style="background:#F43F5E"></span><span>iowait</span></div>
+                </div>
+              </div>
+              <div class="chart-container" id="cpuChart"></div>
+            </div>
+
+            <div class="chart-card">
+              <div class="chart-head">
+                <span class="chart-title" id="netChartTitle">网络吞吐</span>
+                <div class="chart-legend">
+                  <div class="legend-item"><span class="legend-dot" style="background:#8B5CF6"></span><span>下行 ↓</span></div>
+                  <div class="legend-item"><span class="legend-dot" style="background:#22D3EE"></span><span>上行 ↑</span></div>
+                </div>
+              </div>
+              <div class="chart-container" id="netChart"></div>
+            </div>
+          </section>
+
+          <!-- 底部：挂载点 + SWAP + ZRAM -->
+          <section class="bottom-row">
+            <div class="panel-card">
+              <div class="panel-head">
+                <span class="panel-title">磁盘占用 · 各挂载点</span>
+                <span class="panel-sub" id="mountSummary">-- 个挂载点</span>
+              </div>
+              <div class="mount-list" id="mountList">
+                <div style="color:var(--text-dim);font-size:12px;">加载中...</div>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <span class="panel-title">SWAP</span>
+              <div class="panel-big-val" id="swapPct">--%</div>
+              <div class="progress-track"><div class="progress-bar" id="swapBar" style="background:#22D3EE;width:0%"></div></div>
+              <div style="font-family:var(--font-mono);font-size:11px;color:var(--text-sub);" id="swapUsed">-- / --</div>
+              <div class="kv-list">
+                <div class="kv-row"><span class="kv-k">换入速率</span><span class="kv-v" id="swapIn">--</span></div>
+                <div class="kv-row"><span class="kv-k">换出速率</span><span class="kv-v" id="swapOut">--</span></div>
+                <div class="kv-row"><span class="kv-k">SwapCached</span><span class="kv-v" id="swapCached">--</span></div>
+              </div>
+            </div>
+
+            <div class="panel-card">
+              <span class="panel-title">ZRAM</span>
+              <div class="panel-big-val" id="zramUsed">--</div>
+              <div class="progress-track"><div class="progress-bar" id="zramBar" style="background:#10B981;width:0%"></div></div>
+              <div class="kv-list">
+                <div class="kv-row"><span class="kv-k">压缩率</span><span class="kv-v green" id="zramRatio">--</span></div>
+                <div class="kv-row"><span class="kv-k">压缩算法</span><span class="kv-v" id="zramAlgo">--</span></div>
+                <div class="kv-row"><span class="kv-k">设备</span><span class="kv-v" id="zramDev">--</span></div>
+                <div class="kv-row"><span class="kv-k">原始数据</span><span class="kv-v" id="zramOrig">--</span></div>
+              </div>
+            </div>
+          </section>
+        </div>
+
+        <!-- 视图 2：历史趋势 -->
+        <div class="view-container" id="view-history">
+          <div class="history-chart-card">
+            <div class="chart-head">
+              <span class="chart-title">CPU 历史趋势（均值 / 最大 / 最小）</span>
+              <span class="panel-sub" id="historyCpuMeta">加载中...</span>
+            </div>
+            <div class="chart-container" id="historyCpuChart"></div>
+          </div>
+
+          <div class="history-chart-card">
+            <div class="chart-head">
+              <span class="chart-title">内存与 SWAP 历史趋势</span>
+              <span class="panel-sub" id="historyMemMeta">加载中...</span>
+            </div>
+            <div class="chart-container" id="historyMemChart"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="/vendor/echarts.min.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+services:
+  prism-monitor:
+    image: ghcr.io/hybridsakura/prism-monitor:latest
+    container_name: prism-monitor
+    restart: unless-stopped
+    ports:
+      - "21120:21120"
+    environment:
+      - PRISM_PORT=21120
+      - PRISM_DB=/data/prism-monitor.db
+      - PRISM_PROC_ROOT=/host
+    volumes:
+      # 持久化历史时序库
+      - prism-data:/data
+      # 只读挂载宿主 /proc 与 /sys，用于容器内监控宿主机
+      - /:/host:ro
+    # 宿主网络命名空间（可选，能看到全部宿主网络接口）
+    network_mode: host
+
+volumes:
+  prism-data:

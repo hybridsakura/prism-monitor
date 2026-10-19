@@ -1,0 +1,11 @@
+prism-monitor
+prism-monitor.exe
+prism-monitor.db
+prism-monitor.db-wal
+prism-monitor.db-shm
+*.tar.gz
+*.zip
+dist/
+.idea/
+.vscode/
+*.swp
