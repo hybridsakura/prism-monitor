@@ -21,26 +21,39 @@
   --amber: #f59e0b;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body {
+
+html, body {
+  width: 100%;
+  min-height: 100%;
   background: var(--bg);
   color: var(--fg);
-  font: 13.5px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
+
+/* 一屏沉浸模式（Fit Screen）下的全局视口锁定 */
+body.fit-screen {
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
 header {
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex-wrap: wrap;
-  padding: 12px 24px;
+  padding: 10px 20px;
   background: var(--card);
   border-bottom: 1px solid var(--line);
   position: sticky;
   top: 0;
   z-index: 10;
+  flex-shrink: 0;
 }
 header h1 {
-  font-size: 15px;
+  font-size: 14.5px;
   font-weight: 600;
   display: flex;
   align-items: center;
@@ -55,8 +68,15 @@ header h1 .logo {
 header h1 #sub {
   color: var(--fg2);
   font-weight: 400;
-  font-size: 12px;
+  font-size: 11.5px;
 }
+
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
 .ranges {
   display: flex;
   background: var(--bg);
@@ -67,29 +87,49 @@ header h1 #sub {
 .ranges button {
   border: none;
   background: transparent;
-  padding: 4px 10px;
-  font-size: 12px;
+  padding: 3px 8px;
+  font-size: 11.5px;
   border-radius: 4px;
   cursor: pointer;
   color: var(--fg2);
   font-weight: 500;
   transition: all 0.15s;
 }
-.ranges button:hover {
-  color: var(--fg);
-}
+.ranges button:hover { color: var(--fg); }
 .ranges button.on {
   background: var(--card);
   color: var(--blue);
   box-shadow: 0 1px 2px rgba(0,0,0,0.06);
   font-weight: 600;
 }
+
+.mode-btn {
+  border: 1px solid var(--line);
+  background: var(--card);
+  padding: 3px 9px;
+  font-size: 11.5px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--fg2);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  transition: all 0.15s;
+}
+.mode-btn:hover { color: var(--fg); border-color: #cbd5e1; }
+.mode-btn.active {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: var(--blue);
+  font-weight: 600;
+}
+
 .meta {
   margin-left: auto;
   display: flex;
   align-items: center;
-  gap: 16px;
-  font-size: 12px;
+  gap: 14px;
+  font-size: 11.5px;
   color: var(--fg2);
 }
 .dot {
@@ -98,56 +138,68 @@ header h1 #sub {
   height: 7px;
   border-radius: 50%;
   background: var(--green);
-  margin-right: 5px;
+  margin-right: 4px;
 }
 .dot.err { background: var(--red); }
+
 main {
-  max-width: 1560px;
-  margin: 0 auto;
-  padding: 20px 24px;
+  width: 100%;
+  padding: 12px 18px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
+  flex: 1;
 }
 
-/* 顶部 6 张紧凑数字卡 */
+body.fit-screen main {
+  height: calc(100vh - 51px);
+  overflow: hidden;
+  padding: 10px 16px;
+  gap: 10px;
+}
+
+/* 顶部 6 张卡片 */
 .cards {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
-  gap: 12px;
+  gap: 10px;
+  flex-shrink: 0;
 }
 .card {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 12px 14px;
+  border-radius: 6px;
+  padding: 8px 12px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 1px 2px rgba(0,0,0,0.02);
 }
 .card .k {
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--fg2);
-  margin-bottom: 4px;
+  margin-bottom: 2px;
   font-weight: 500;
+  display: flex;
+  justify-content: space-between;
 }
 .card .v {
-  font-size: 22px;
+  font-size: 20px;
   font-weight: 600;
   color: var(--fg);
   font-family: ui-monospace, "SF Mono", "Segoe UI Mono", monospace;
   letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 .card .v small {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   margin-left: 2px;
   color: var(--fg2);
 }
 .card .s {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--fg2);
-  margin-top: 4px;
+  margin-top: 3px;
   font-family: ui-monospace, monospace;
 }
 
@@ -155,49 +207,59 @@ main {
 .charts {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
+  gap: 10px;
+  flex: 1;
 }
+
+body.fit-screen .charts {
+  height: 100%;
+  min-height: 0;
+}
+
 .panel {
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 8px;
-  padding: 14px 16px 10px;
+  border-radius: 6px;
+  padding: 10px 14px 8px;
   display: flex;
   flex-direction: column;
   box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+  min-height: 0;
 }
 .panel h2 {
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 600;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  flex-shrink: 0;
 }
 .panel h2 em {
   font-style: normal;
   font-weight: 400;
-  font-size: 11.5px;
+  font-size: 11px;
   color: var(--fg2);
 }
 .legend {
   display: flex;
-  gap: 14px;
-  font-size: 11.5px;
+  gap: 12px;
+  font-size: 11px;
   color: var(--fg2);
-  margin-bottom: 8px;
-  min-height: 18px;
+  margin-bottom: 4px;
+  min-height: 16px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 .legend span {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
 }
 .legend i {
   display: inline-block;
-  width: 9px;
-  height: 9px;
+  width: 8px;
+  height: 8px;
   border-radius: 2px;
 }
 .legend b {
@@ -205,10 +267,12 @@ main {
   color: var(--fg);
   font-family: ui-monospace, monospace;
 }
+
 .cvs {
   position: relative;
-  height: 155px;
+  flex: 1;
   width: 100%;
+  min-height: 120px;
 }
 .cvs canvas {
   width: 100%;
@@ -217,18 +281,37 @@ main {
   cursor: crosshair;
 }
 
-@media (max-width: 1100px) {
-  .cards { grid-template-columns: repeat(3, 1fr); }
-  .charts { grid-template-columns: 1fr; }
+/* 响应式断点系统：充分释放带鱼屏 / 超宽屏 / 4K 空间 */
+/* 超宽屏（>= 1800px，如 21:9 2560/3440/3840/5120）：自动 4 列 × 2 行，完美一屏！ */
+@media (min-width: 1800px) {
+  .charts {
+    grid-template-columns: repeat(4, 1fr) !important;
+    grid-template-rows: repeat(2, 1fr);
+  }
 }
-@media (max-width: 600px) {
+
+/* 中宽屏（1300px ~ 1799px）：支持 2 列或在 fit-screen 采用 4 列紧凑 */
+@media (min-width: 1400px) and (max-width: 1799px) {
+  body.fit-screen .charts {
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 1200px) {
+  .cards { grid-template-columns: repeat(3, 1fr); }
+  .charts { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 700px) {
   .cards { grid-template-columns: repeat(2, 1fr); }
-  header { padding: 12px 16px; }
-  main { padding: 12px 16px; }
+  .charts { grid-template-columns: 1fr; }
+  header { padding: 10px 14px; }
+  main { padding: 10px 12px; }
 }
 </style>
 </head>
-<body>
+<body class="fit-screen">
 <header>
   <h1>
     <svg class="logo" viewBox="0 0 24 24" fill="none">
@@ -236,10 +319,21 @@ main {
       <path d="M2 8.5V15.5L12 22V15L2 8.5Z" fill="#1e40af"/>
       <path d="M22 8.5V15.5L12 22V15L22 8.5Z" fill="#172554"/>
     </svg>
-    <span id="ttl">Prism Monitor (HMD)</span>
+    <span id="ttl">Prism Monitor</span>
     <span id="sub">主机监控</span>
   </h1>
-  <div class="ranges" id="ranges"></div>
+
+  <div class="controls">
+    <div class="ranges" id="ranges"></div>
+    <button class="mode-btn active" id="fitScreenBtn" title="切换一屏固定与自由滚动布局">
+      <svg width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+        <path d="M1.5 2A1.5 1.5 0 0 0 0 3.5v9A1.5 1.5 0 0 0 1.5 14h13a1.5 1.5 0 0 0 1.5-1.5v-9A1.5 1.5 0 0 0 14.5 2h-13zm0 1h13a.5.5 0 0 1 .5.5v9a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-9a.5.5 0 0 1 .5-.5z"/>
+        <path d="M4 6.5a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 0 1H5.707l2.147 2.146a.5.5 0 0 1-.708.708L5 7.707V9a.5.5 0 0 1-1 0V6.5zm8 3a.5.5 0 0 1-.5.5h-2a.5.5 0 0 1 0-1h1.293L8.646 6.854a.5.5 0 1 1 .708-.708L11 8.293V7a.5.5 0 0 1 1 0v2.5z"/>
+      </svg>
+      <span id="fitScreenLabel">一屏模式</span>
+    </button>
+  </div>
+
   <div class="meta">
     <span><span class="dot" id="dot"></span><span id="stateText">连接中...</span></span>
     <span id="updated">--</span>
@@ -266,17 +360,17 @@ let currentRange = "1h";
 let timer = null;
 const state = {};
 
-// 顶部 6 张数字卡定义
+// 顶部 6 张卡片定义
 const CARDS = [
   { key: "cpu", label: "CPU 使用率", unit: "%", digits: 1 },
-  { key: "steal", label: "CPU Steal (抢占)", unit: "%", digits: 2 },
+  { key: "steal", label: "CPU Steal", unit: "%", digits: 2 },
   { key: "mem", label: "内存使用率", unit: "%", digits: 1 },
   { key: "swap", label: "SWAP 占用", unit: "%", digits: 1 },
   { key: "load", label: "1 分钟负载", unit: "", digits: 2 },
   { key: "root", label: "根分区使用", unit: "%", digits: 1 }
 ];
 
-// 下方 8 个图表面板定义
+// 下方 8 块图表面板（在超宽屏下自动平铺为 4 列 × 2 行）
 const PANELS = [
   {
     title: "CPU 使用率趋势", sub: "total", unit: "%", min: 0, max: 100,
@@ -307,7 +401,7 @@ const PANELS = [
     ]
   },
   {
-    title: "磁盘平均延迟 (await)", sub: "毫秒", unit: "ms", min: 0,
+    title: "磁盘平均等待延迟 (await)", sub: "毫秒", unit: "ms", min: 0,
     metrics: [
       { name: "延迟", color: "#dc2626", key: "disk.sda.await_ms" }
     ]
@@ -320,20 +414,39 @@ const PANELS = [
     ]
   },
   {
-    title: "SWAP 页面换入/换出速率", sub: "B/s", unit: "B/s", min: 0,
+    title: "SWAP 换入/换出速率", sub: "B/s", unit: "B/s", min: 0,
     metrics: [
       { name: "换入", color: "#0ea5e9", key: "swap.in_bps" },
       { name: "换出", color: "#ea8b1f", key: "swap.out_bps" }
     ]
   },
   {
-    title: "磁盘各挂载点占用率", sub: "容量占比", unit: "%", min: 0, max: 100,
+    title: "磁盘分区占用率", sub: "各挂载点", unit: "%", min: 0, max: 100,
     metrics: [
       { name: "根分区 (/)", color: "#2f6feb", key: "mount._root.pct" },
-      { name: "数据分区 (/data 或 /var)", color: "#8b5cf6", key: "mount._var.pct" }
+      { name: "数据 (/data 或 /var)", color: "#8b5cf6", key: "mount._var.pct" }
     ]
   }
 ];
+
+function initFitScreenMode() {
+  const btn = document.getElementById("fitScreenBtn");
+  const label = document.getElementById("fitScreenLabel");
+  const saved = localStorage.getItem("prism_hmd_fit_mode");
+  const isFit = saved === null ? true : saved === "true"; // 默认开启一屏模式
+
+  document.body.classList.toggle("fit-screen", isFit);
+  btn.classList.toggle("active", isFit);
+  label.textContent = isFit ? "一屏模式" : "自适应滚动";
+
+  btn.onclick = () => {
+    const cur = document.body.classList.toggle("fit-screen");
+    btn.classList.toggle("active", cur);
+    label.textContent = cur ? "一屏模式" : "自适应滚动";
+    localStorage.setItem("prism_hmd_fit_mode", cur);
+    redrawAll();
+  };
+}
 
 function buildUI() {
   document.getElementById("ranges").innerHTML = Object.keys(RANGES)
@@ -350,7 +463,7 @@ function buildUI() {
 
   document.getElementById("cards").innerHTML = CARDS.map(c => `
     <div class="card">
-      <div class="k">${c.label}</div>
+      <div class="k"><span>${c.label}</span></div>
       <div class="v" id="card-${c.key}">—</div>
       <div class="s" id="card-${c.key}-s"></div>
     </div>
@@ -370,7 +483,7 @@ function buildUI() {
       const rect = cv.getBoundingClientRect();
       const st = state[i];
       if (!st || !st.span) return;
-      const padL = 46, padR = 8;
+      const padL = 40, padR = 8;
       const ratio = (ev.clientX - rect.left - padL) / (rect.width - padL - padR);
       const t = st.t0 + ratio * st.span;
       st.hoverT = t;
@@ -400,7 +513,6 @@ function buildUI() {
   });
 }
 
-// 核心 Canvas 手绘引擎（带悬停十字线与网格对齐）
 function draw(canvas, lines, opts) {
   const dpr = window.devicePixelRatio || 1;
   const box = canvas.parentElement.getBoundingClientRect();
@@ -411,13 +523,13 @@ function draw(canvas, lines, opts) {
   g.setTransform(dpr, 0, 0, dpr, 0, 0);
   g.clearRect(0, 0, w, h);
 
-  const padL = 46, padR = 8, padT = 8, padB = 20;
+  const padL = 40, padR = 8, padT = 6, padB = 18;
   const cw = w - padL - padR, ch = h - padT - padB;
   const all = lines.flatMap(l => l.points);
 
   if (!all.length) {
     g.fillStyle = "#9aa1ab";
-    g.font = "12px sans-serif";
+    g.font = "11px sans-serif";
     g.textAlign = "center";
     g.fillText("无数据", w / 2, h / 2);
     return;
@@ -434,32 +546,29 @@ function draw(canvas, lines, opts) {
   if (opts.min === undefined) vmin -= pad;
   if (opts.max === undefined) vmax += pad;
 
-  // 画 4 条 Y 轴参考水平网格
   g.strokeStyle = "#e4e6eb";
   g.lineWidth = 1;
   g.fillStyle = "#9aa1ab";
-  g.font = "10px ui-monospace, monospace";
+  g.font = "9.5px ui-monospace, monospace";
   g.textAlign = "right";
 
-  for (let i = 0; i < 4; i++) {
-    const y = padT + (ch / 3) * i;
-    const v = vmax - ((vmax - vmin) / 3) * i;
+  for (let i = 0; i < 3; i++) {
+    const y = padT + (ch / 2) * i;
+    const v = vmax - ((vmax - vmin) / 2) * i;
     g.beginPath();
     g.moveTo(padL, y);
     g.lineTo(w - padR, y);
     g.stroke();
-    g.fillText(fmtVal(v, opts.unit, 1), padL - 6, y + 3.5);
+    g.fillText(fmtVal(v, opts.unit, 0), padL - 5, y + 3);
   }
 
-  // 映射函数
   const xOf = t => padL + ((t - t0) / (t1 - t0)) * cw;
   const yOf = v => padT + ch - ((v - vmin) / (vmax - vmin)) * ch;
 
-  // 绘制数据折线
   lines.forEach(l => {
     if (l.points.length < 2) return;
     g.strokeStyle = l.color;
-    g.lineWidth = 1.7;
+    g.lineWidth = 1.6;
     g.beginPath();
     let first = true;
     for (const [t, v] of l.points) {
@@ -470,7 +579,6 @@ function draw(canvas, lines, opts) {
     g.stroke();
   });
 
-  // 十字准星（悬停位置）
   if (opts.hoverT !== null && opts.hoverT !== undefined) {
     const hx = Math.max(padL, Math.min(w - padR, xOf(opts.hoverT)));
     g.strokeStyle = "rgba(47, 111, 235, 0.4)";
@@ -482,11 +590,10 @@ function draw(canvas, lines, opts) {
     g.setLineDash([]);
   }
 
-  // X 轴时间标签（首尾两个）
   g.textAlign = "left";
-  g.fillText(fmtTime(t0), padL, h - 4);
+  g.fillText(fmtTime(t0), padL, h - 3);
   g.textAlign = "right";
-  g.fillText(fmtTime(t1), w - padR, h - 4);
+  g.fillText(fmtTime(t1), w - padR, h - 3);
 }
 
 function fmtVal(v, unit, digits) {
@@ -515,11 +622,9 @@ async function refresh() {
   const txt = document.getElementById("stateText");
 
   try {
-    // 1. 获取当前最新快照
     const snap = await fetch("/api/v1/now").then(r => r.json());
     document.getElementById("sub").textContent = `${snap.host.hostname} · ${snap.host.os}`;
 
-    // 更新 6 张卡片当前值
     const cpuTotal = snap.cpu.total;
     const cpuSteal = snap.cpu.steal;
     const memPct = snap.mem.pct;
@@ -534,9 +639,7 @@ async function refresh() {
     setCard("load", load1, "", 2);
     setCard("root", rootMount.pct, "%", 1);
 
-    // 2. 并行获取 8 个面板的时序数据
     await Promise.all(PANELS.map(async (p, i) => {
-      // 动态替换网卡名与挂载路径（自适配真实设备名）
       const lines = await Promise.all(p.metrics.map(async (m, j) => {
         let key = m.key;
         if (key.startsWith("disk.sda.") && snap.disks && snap.disks.length) {
@@ -566,7 +669,6 @@ async function refresh() {
       };
       state[i] = st;
 
-      // 渲染图例
       document.getElementById("lg-" + i).innerHTML = lines.map((l, j) => {
         const last = l.points.length ? l.points[l.points.length - 1][1] : null;
         return `<span><i style="background:${l.color}"></i>${l.name} <b id="lg-${i}-${j}">${fmtVal(last, p.unit)}</b></span>`;
@@ -592,16 +694,22 @@ function setCard(key, val, unit, digits) {
   }
 }
 
-window.addEventListener("resize", () => {
-  PANELS.forEach((p, i) => {
-    const st = state[i];
-    if (st) draw(document.getElementById("cv-" + i), st.lines, st.opts);
-  });
-});
+function redrawAll() {
+  setTimeout(() => {
+    PANELS.forEach((p, i) => {
+      const st = state[i];
+      if (st) draw(document.getElementById("cv-" + i), st.lines, st.opts);
+    });
+  }, 60);
+}
+
+window.addEventListener("resize", redrawAll);
 
 buildUI();
+initFitScreenMode();
 refresh();
-timer = setInterval(refresh, 10000); // 10s 周期自适应轮询
+timer = setInterval(refresh, 10000);
+
 document.addEventListener("visibilitychange", () => {
   if (document.hidden) { clearInterval(timer); timer = null; }
   else if (!timer) { refresh(); timer = setInterval(refresh, 10000); }
