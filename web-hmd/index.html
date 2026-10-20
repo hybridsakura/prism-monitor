@@ -415,11 +415,10 @@ const PANELS = [
     ]
   },
   {
-    title: "GPU 显卡负载与频率", sub: "Radeon HD 8470D", unit: "%", min: 0, max: 100,
+    title: "GPU 显卡负载与核心频率", sub: "Radeon HD 8470D", unit: "%", min: 0,
     metrics: [
       { name: "占用率", color: "#8b5cf6", key: "gpu.usage_pct" },
-      { name: "频率 (MHz)", color: "#0ea5e9", key: "gpu.freq_mhz" },
-      { name: "温度 (°C)", color: "#ea8b1f", key: "gpu.temp_c" }
+      { name: "核心频率 (MHz)", color: "#0ea5e9", key: "gpu.freq_mhz" }
     ]
   },
   {
@@ -600,6 +599,7 @@ function draw(canvas, lines, opts) {
 
 function fmtVal(v, unit, digits) {
   if (v === null || v === undefined || isNaN(v)) return "—";
+  if (unit === "°C" && v <= 0) return "不可用 (驱动偏移)";
   if (unit === "B/s") return fmtBytes(v);
   if (unit === "ms") return v.toFixed(1) + "ms";
   const d = digits !== undefined ? digits : (unit === "%" ? 1 : 2);

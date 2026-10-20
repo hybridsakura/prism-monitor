@@ -59,7 +59,14 @@ func (c *Collector) readGPU() *GPUStat {
 				if tb, err := os.ReadFile(filepath.Join(hm, "temp1_input")); err == nil {
 					var mc float64
 					if _, err := fmt.Sscanf(strings.TrimSpace(string(tb)), "%g", &mc); err == nil {
-						gpu.TempC = mc / 1000.0
+						val := mc / 1000.0
+						// AMD APU (Richland/Trinity) 内置传感器在低负载时往往输出负数或偏置值
+						// 滤除 <= 0 的物理异常值，避免图表出现负数折线
+						if val > 0 && val < 125 {
+							gpu.TempC = val
+						} else {
+							gpu.TempC = 0 // 标记为不可用
+						}
 					}
 				}
 				break
