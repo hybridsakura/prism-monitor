@@ -26,3 +26,4 @@ jobs:
         run: |
           CGO_ENABLED=0 go build -trimpath -o /tmp/prism-monitor ./cmd/prism-monitor
           /tmp/prism-monitor -v
+          CGO_ENABLED=0 go build -trimpath -o /tmp/prism-hmd ./cmd/prism-hmd

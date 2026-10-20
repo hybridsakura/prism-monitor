@@ -1,5 +1,7 @@
-prism-monitor
-prism-monitor.exe
+/prism-monitor
+/prism-monitor.exe
+/prism-hmd
+/prism-hmd.exe
 prism-monitor.db
 prism-monitor.db-wal
 prism-monitor.db-shm
