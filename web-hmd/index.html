@@ -336,6 +336,7 @@ body.fit-screen .charts {
 
   <div class="meta">
     <span><span class="dot" id="dot"></span><span id="stateText">连接中...</span></span>
+    <span class="live-pill" id="livePill" style="display:inline-block;padding:1px 6px;border-radius:4px;background:#dcfce7;color:#15803d;font-size:10px;font-weight:600;font-family:ui-monospace,monospace;">LIVE</span>
     <span id="updated">--</span>
   </div>
 </header>
@@ -617,6 +618,141 @@ function fmtTime(ts) {
   return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
 }
 
+let eventSource = null;
+
+// 从快照中提取各指标的最新值（用于实时追加到曲线中）
+function extractSnapshotValue(snap, key) {
+  if (key === "cpu.total") return snap.cpu.total;
+  if (key === "cpu.steal") return snap.cpu.steal;
+  if (key === "cpu.iowait") return snap.cpu.iowait;
+  if (key === "cpu.load1") return snap.cpu.load[0];
+  if (key === "mem.pct") return snap.mem.pct;
+  if (key === "swap.pct") return snap.swap.pct;
+  if (key === "swap.in_bps") return snap.swap.in_bps;
+  if (key === "swap.out_bps") return snap.swap.out_bps;
+  if (key.startsWith("disk.") && key.endsWith(".read_bps")) {
+    return snap.disks && snap.disks.length ? snap.disks[0].read_bps : 0;
+  }
+  if (key.startsWith("disk.") && key.endsWith(".write_bps")) {
+    return snap.disks && snap.disks.length ? snap.disks[0].write_bps : 0;
+  }
+  if (key.startsWith("disk.") && key.endsWith(".await_ms")) {
+    return snap.disks && snap.disks.length ? snap.disks[0].await_ms : 0;
+  }
+  if (key.startsWith("net.") && key.endsWith(".rx_bps")) {
+    return snap.nets && snap.nets.length ? snap.nets[0].rx_bps : 0;
+  }
+  if (key.startsWith("net.") && key.endsWith(".tx_bps")) {
+    return snap.nets && snap.nets.length ? snap.nets[0].tx_bps : 0;
+  }
+  if (key === "mount._root.pct") {
+    const m = (snap.mounts || []).find(x => x.path === "/");
+    return m ? m.pct : 0;
+  }
+  if (key === "mount._var.pct") {
+    const m = (snap.mounts || []).find(x => x.path === "/data" || x.path === "/var" || x.path === "/home");
+    return m ? m.pct : 0;
+  }
+  return 0;
+}
+
+// 接收 SSE 实时推送快照（每 2 秒一次）
+function onRealtimeSnapshot(snap) {
+  document.getElementById("sub").textContent = `${snap.host.hostname} · ${snap.host.os}`;
+
+  // 1. 实时更新 6 张数字卡
+  setCard("cpu", snap.cpu.total, "%", 1);
+  setCard("steal", snap.cpu.steal, "%", 2);
+  setCard("mem", snap.mem.pct, "%", 1);
+  setCard("swap", snap.swap.pct, "%", 1);
+  setCard("load", snap.cpu.load[0], "", 2);
+  const rootMount = (snap.mounts || []).find(m => m.path === "/") || { pct: 0 };
+  setCard("root", rootMount.pct, "%", 1);
+
+  // 2. 将最新数据点实时推送到 8 块图表面板（追加模式）
+  const ts = snap.ts;
+  const timeLimit = RANGES[currentRange] || 3600;
+
+  PANELS.forEach((p, i) => {
+    const st = state[i];
+    if (!st || !st.lines) return;
+
+    p.metrics.forEach((m, j) => {
+      const val = extractSnapshotValue(snap, m.key);
+      const line = st.lines[j];
+      if (line) {
+        line.points.push([ts, val]);
+        // 剔除超出当前时间跨度窗口的老点位
+        const oldestAllowed = ts - timeLimit;
+        while (line.points.length > 2 && line.points[0][0] < oldestAllowed) {
+          line.points.shift();
+        }
+      }
+    });
+
+    const all = st.lines.flatMap(l => l.points.map(q => q[0]));
+    if (all.length) {
+      st.t0 = Math.min(...all);
+      st.span = Math.max(...all) - st.t0;
+    }
+
+    // 实时刷新图例中的当前值
+    st.lines.forEach((l, j) => {
+      const el = document.getElementById(`lg-${i}-${j}`);
+      const last = l.points.length ? l.points[l.points.length - 1][1] : null;
+      if (el && (!st.hoverT)) el.textContent = fmtVal(last, p.unit);
+    });
+
+    // 实时重绘该面板 Canvas
+    const cv = document.getElementById("cv-" + i);
+    if (cv) draw(cv, st.lines, st.opts);
+  });
+
+  const dot = document.getElementById("dot");
+  const txt = document.getElementById("stateText");
+  dot.classList.remove("err");
+  txt.textContent = "实时连接中";
+  document.getElementById("updated").textContent = "实时推送 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
+}
+
+// 建立 SSE 长连接
+function initSSE() {
+  if (eventSource) {
+    eventSource.close();
+  }
+  const dot = document.getElementById("dot");
+  const txt = document.getElementById("stateText");
+  const livePill = document.getElementById("livePill");
+
+  eventSource = new EventSource("/api/v1/stream");
+
+  eventSource.onopen = () => {
+    dot.classList.remove("err");
+    txt.textContent = "实时连接中";
+    livePill.textContent = "LIVE";
+    livePill.style.background = "#dcfce7";
+    livePill.style.color = "#15803d";
+  };
+
+  eventSource.onmessage = (e) => {
+    try {
+      const snap = JSON.parse(e.data);
+      onRealtimeSnapshot(snap);
+    } catch (err) {
+      console.error("SSE 数据解析失败:", err);
+    }
+  };
+
+  eventSource.onerror = () => {
+    dot.classList.add("err");
+    txt.textContent = "重连中...";
+    livePill.textContent = "RETRY";
+    livePill.style.background = "#fee2e2";
+    livePill.style.color = "#b91c1c";
+  };
+}
+
+// 历史底图加载（切换时间范围或初始化时执行）
 async function refresh() {
   const dot = document.getElementById("dot");
   const txt = document.getElementById("stateText");
@@ -625,18 +761,12 @@ async function refresh() {
     const snap = await fetch("/api/v1/now").then(r => r.json());
     document.getElementById("sub").textContent = `${snap.host.hostname} · ${snap.host.os}`;
 
-    const cpuTotal = snap.cpu.total;
-    const cpuSteal = snap.cpu.steal;
-    const memPct = snap.mem.pct;
-    const swapPct = snap.swap.pct;
-    const load1 = snap.cpu.load[0];
+    setCard("cpu", snap.cpu.total, "%", 1);
+    setCard("steal", snap.cpu.steal, "%", 2);
+    setCard("mem", snap.mem.pct, "%", 1);
+    setCard("swap", snap.swap.pct, "%", 1);
+    setCard("load", snap.cpu.load[0], "", 2);
     const rootMount = (snap.mounts || []).find(m => m.path === "/") || { pct: 0 };
-
-    setCard("cpu", cpuTotal, "%", 1);
-    setCard("steal", cpuSteal, "%", 2);
-    setCard("mem", memPct, "%", 1);
-    setCard("swap", swapPct, "%", 1);
-    setCard("load", load1, "", 2);
     setCard("root", rootMount.pct, "%", 1);
 
     await Promise.all(PANELS.map(async (p, i) => {
@@ -678,7 +808,7 @@ async function refresh() {
     }));
 
     dot.classList.remove("err");
-    txt.textContent = "正常";
+    txt.textContent = "实时连接中";
     document.getElementById("updated").textContent = "更新于 " + new Date().toLocaleTimeString("zh-CN", { hour12: false });
   } catch (e) {
     dot.classList.add("err");
@@ -707,12 +837,22 @@ window.addEventListener("resize", redrawAll);
 
 buildUI();
 initFitScreenMode();
-refresh();
-timer = setInterval(refresh, 10000);
+refresh().then(() => {
+  initSSE();
+});
+
+// 后台 30 秒兜底同步一次整体历史刻度（防止偶发丢包时间漂移）
+timer = setInterval(refresh, 30000);
 
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden) { clearInterval(timer); timer = null; }
-  else if (!timer) { refresh(); timer = setInterval(refresh, 10000); }
+  if (document.hidden) {
+    if (eventSource) { eventSource.close(); eventSource = null; }
+    clearInterval(timer);
+    timer = null;
+  } else {
+    refresh().then(() => { initSSE(); });
+    if (!timer) timer = setInterval(refresh, 30000);
+  }
 });
 </script>
 </body>
