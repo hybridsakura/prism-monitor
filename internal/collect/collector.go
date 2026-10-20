@@ -132,6 +132,9 @@ func (c *Collector) Collect() (*Snapshot, error) {
 	// ZRAM
 	snap.Zram = c.readZram()
 
+	// GPU (支持集成显卡与独立显卡)
+	snap.GPU = c.readGPU()
+
 	// 运行时长
 	if up, err := c.readUptime(); err == nil {
 		snap.Uptime = up

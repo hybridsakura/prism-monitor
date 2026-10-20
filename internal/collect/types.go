@@ -9,6 +9,7 @@ type Snapshot struct {
 	Host   HostStat    `json:"host"`
 	Uptime int64       `json:"uptime"`
 	CPU    CPUStat     `json:"cpu"`
+	GPU    *GPUStat    `json:"gpu,omitempty"`
 	Mem    MemStat     `json:"mem"`
 	Swap   SwapStat    `json:"swap"`
 	Zram   []ZramStat  `json:"zram"`
@@ -94,6 +95,11 @@ func (s *Snapshot) Metrics() map[string]float64 {
 		"swap.in_bps":   s.Swap.InBps,
 		"swap.out_bps":  s.Swap.OutBps,
 		"swap.used":     float64(s.Swap.Used),
+	}
+	if s.GPU != nil {
+		m["gpu.usage_pct"] = s.GPU.UsagePct
+		m["gpu.freq_mhz"] = s.GPU.FreqMHz
+		m["gpu.temp_c"] = s.GPU.TempC
 	}
 	for _, d := range s.Disks {
 		m["disk."+d.Dev+".read_bps"] = d.ReadBps

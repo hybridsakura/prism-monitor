@@ -364,9 +364,9 @@ const state = {};
 // 顶部 6 张卡片定义
 const CARDS = [
   { key: "cpu", label: "CPU 使用率", unit: "%", digits: 1 },
+  { key: "gpu", label: "集成显卡 (GPU)", unit: "%", digits: 1 },
   { key: "steal", label: "CPU Steal", unit: "%", digits: 2 },
   { key: "mem", label: "内存使用率", unit: "%", digits: 1 },
-  { key: "swap", label: "SWAP 占用", unit: "%", digits: 1 },
   { key: "load", label: "1 分钟负载", unit: "", digits: 2 },
   { key: "root", label: "根分区使用", unit: "%", digits: 1 }
 ];
@@ -415,10 +415,11 @@ const PANELS = [
     ]
   },
   {
-    title: "SWAP 换入/换出速率", sub: "B/s", unit: "B/s", min: 0,
+    title: "GPU 显卡负载与频率", sub: "Radeon HD 8470D", unit: "%", min: 0, max: 100,
     metrics: [
-      { name: "换入", color: "#0ea5e9", key: "swap.in_bps" },
-      { name: "换出", color: "#ea8b1f", key: "swap.out_bps" }
+      { name: "占用率", color: "#8b5cf6", key: "gpu.usage_pct" },
+      { name: "频率 (MHz)", color: "#0ea5e9", key: "gpu.freq_mhz" },
+      { name: "温度 (°C)", color: "#ea8b1f", key: "gpu.temp_c" }
     ]
   },
   {
@@ -653,6 +654,15 @@ function extractSnapshotValue(snap, key) {
     const m = (snap.mounts || []).find(x => x.path === "/data" || x.path === "/var" || x.path === "/home");
     return m ? m.pct : 0;
   }
+  if (key === "gpu.usage_pct") {
+    return snap.gpu ? snap.gpu.usage_pct : 0;
+  }
+  if (key === "gpu.freq_mhz") {
+    return snap.gpu ? snap.gpu.freq_mhz : 0;
+  }
+  if (key === "gpu.temp_c") {
+    return snap.gpu ? snap.gpu.temp_c : 0;
+  }
   return 0;
 }
 
@@ -662,9 +672,14 @@ function onRealtimeSnapshot(snap) {
 
   // 1. 实时更新 6 张数字卡
   setCard("cpu", snap.cpu.total, "%", 1);
+  const gpuUsage = snap.gpu ? snap.gpu.usage_pct : 0;
+  setCard("gpu", gpuUsage, "%", 1);
+  const gpuSub = document.getElementById("card-gpu-s");
+  if (gpuSub && snap.gpu) {
+    gpuSub.textContent = `${snap.gpu.freq_mhz.toFixed(0)} MHz · ${snap.gpu.temp_c > 0 ? snap.gpu.temp_c.toFixed(0) + '°C' : snap.gpu.model}`;
+  }
   setCard("steal", snap.cpu.steal, "%", 2);
   setCard("mem", snap.mem.pct, "%", 1);
-  setCard("swap", snap.swap.pct, "%", 1);
   setCard("load", snap.cpu.load[0], "", 2);
   const rootMount = (snap.mounts || []).find(m => m.path === "/") || { pct: 0 };
   setCard("root", rootMount.pct, "%", 1);
@@ -762,9 +777,14 @@ async function refresh() {
     document.getElementById("sub").textContent = `${snap.host.hostname} · ${snap.host.os}`;
 
     setCard("cpu", snap.cpu.total, "%", 1);
+    const gpuUsageInit = snap.gpu ? snap.gpu.usage_pct : 0;
+    setCard("gpu", gpuUsageInit, "%", 1);
+    const gpuSubInit = document.getElementById("card-gpu-s");
+    if (gpuSubInit && snap.gpu) {
+      gpuSubInit.textContent = `${snap.gpu.freq_mhz.toFixed(0)} MHz · ${snap.gpu.temp_c > 0 ? snap.gpu.temp_c.toFixed(0) + '°C' : snap.gpu.model}`;
+    }
     setCard("steal", snap.cpu.steal, "%", 2);
     setCard("mem", snap.mem.pct, "%", 1);
-    setCard("swap", snap.swap.pct, "%", 1);
     setCard("load", snap.cpu.load[0], "", 2);
     const rootMount = (snap.mounts || []).find(m => m.path === "/") || { pct: 0 };
     setCard("root", rootMount.pct, "%", 1);
