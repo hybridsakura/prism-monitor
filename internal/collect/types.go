@@ -32,11 +32,13 @@ type CPUStat struct {
 }
 
 type MemStat struct {
-	Total  uint64  `json:"total"`  // 字节
-	Used   uint64  `json:"used"`   // total - available
-	Cached uint64  `json:"cached"` // page cache（含 buffers）
-	Avail  uint64  `json:"avail"`
-	Pct    float64 `json:"pct"`
+	Total   uint64  `json:"total"`    // 字节
+	Used    uint64  `json:"used"`     // total - available
+	Cached  uint64  `json:"cached"`   // page cache（含 buffers）
+	Avail   uint64  `json:"avail"`
+	Pct     float64 `json:"pct"`
+	GPUUsed uint64  `json:"gpu_used"` // GPU 占用的共享/显存内存 (字节)
+	GPUPct  float64 `json:"gpu_pct"`  // GPU 占用占系统物理内存的 %
 }
 
 type SwapStat struct {
@@ -100,6 +102,14 @@ func (s *Snapshot) Metrics() map[string]float64 {
 		m["gpu.usage_pct"] = s.GPU.UsagePct
 		m["gpu.freq_mhz"] = s.GPU.FreqMHz
 		m["gpu.temp_c"] = s.GPU.TempC
+		m["gpu.vram_pct"] = s.GPU.VramPct
+		m["gpu.vram_used"] = float64(s.GPU.VramUsed)
+		m["gpu.vram_total"] = float64(s.GPU.VramTotal)
+		m["gpu.gtt_pct"] = s.GPU.GttPct
+		m["gpu.gtt_used"] = float64(s.GPU.GttUsed)
+		m["gpu.gtt_total"] = float64(s.GPU.GttTotal)
+		m["mem.gpu_pct"] = s.Mem.GPUPct
+		m["mem.gpu_used"] = float64(s.Mem.GPUUsed)
 	}
 	for _, d := range s.Disks {
 		m["disk."+d.Dev+".read_bps"] = d.ReadBps

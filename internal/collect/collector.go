@@ -133,7 +133,11 @@ func (c *Collector) Collect() (*Snapshot, error) {
 	snap.Zram = c.readZram()
 
 	// GPU (支持集成显卡与独立显卡)
-	snap.GPU = c.readGPU()
+	snap.GPU = c.readGPU(snap.Mem.Total)
+	if snap.GPU != nil {
+		snap.Mem.GPUUsed = snap.GPU.MemUsed
+		snap.Mem.GPUPct = snap.GPU.MemPct
+	}
 
 	// 运行时长
 	if up, err := c.readUptime(); err == nil {

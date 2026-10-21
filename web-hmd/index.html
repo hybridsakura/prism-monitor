@@ -382,10 +382,11 @@ const PANELS = [
     ]
   },
   {
-    title: "内存使用率趋势", sub: "physical", unit: "%", min: 0, max: 100,
+    title: "内存使用率趋势", sub: "RAM / SWAP / GPU", unit: "%", min: 0, max: 100,
     metrics: [
-      { name: "内存 %", color: "#8b5cf6", key: "mem.pct" },
-      { name: "SWAP %", color: "#0ea5e9", key: "swap.pct" }
+      { name: "物理内存", color: "#8b5cf6", key: "mem.pct" },
+      { name: "SWAP", color: "#ea8b1f", key: "swap.pct" },
+      { name: "GPU 占物理内存", color: "#16a34a", key: "mem.gpu_pct" }
     ]
   },
   {
@@ -415,10 +416,11 @@ const PANELS = [
     ]
   },
   {
-    title: "GPU 显卡负载与核心频率", sub: "Radeon HD 8470D", unit: "%", min: 0,
+    title: "GPU 负载与显存占用", sub: "Radeon HD 8470D", unit: "%", min: 0, max: 100,
     metrics: [
-      { name: "占用率", color: "#8b5cf6", key: "gpu.usage_pct" },
-      { name: "核心频率 (MHz)", color: "#0ea5e9", key: "gpu.freq_mhz" }
+      { name: "计算负载", color: "#8b5cf6", key: "gpu.usage_pct" },
+      { name: "专用显存 (VRAM)", color: "#2f6feb", key: "gpu.vram_pct" },
+      { name: "共享显存 (GTT)", color: "#0ea5e9", key: "gpu.gtt_pct" }
     ]
   },
   {
@@ -628,6 +630,7 @@ function extractSnapshotValue(snap, key) {
   if (key === "cpu.iowait") return snap.cpu.iowait;
   if (key === "cpu.load1") return snap.cpu.load[0];
   if (key === "mem.pct") return snap.mem.pct;
+  if (key === "mem.gpu_pct") return snap.mem ? (snap.mem.gpu_pct || 0) : 0;
   if (key === "swap.pct") return snap.swap.pct;
   if (key === "swap.in_bps") return snap.swap.in_bps;
   if (key === "swap.out_bps") return snap.swap.out_bps;
@@ -657,6 +660,12 @@ function extractSnapshotValue(snap, key) {
   if (key === "gpu.usage_pct") {
     return snap.gpu ? snap.gpu.usage_pct : 0;
   }
+  if (key === "gpu.vram_pct") {
+    return snap.gpu ? (snap.gpu.vram_pct || 0) : 0;
+  }
+  if (key === "gpu.gtt_pct") {
+    return snap.gpu ? (snap.gpu.gtt_pct || 0) : 0;
+  }
   if (key === "gpu.freq_mhz") {
     return snap.gpu ? snap.gpu.freq_mhz : 0;
   }
@@ -664,6 +673,37 @@ function extractSnapshotValue(snap, key) {
     return snap.gpu ? snap.gpu.temp_c : 0;
   }
   return 0;
+}
+
+function updateSubtitles(snap) {
+  if (!snap) return;
+
+  // 1. GPU 顶部卡片副标题
+  const gpuSub = document.getElementById("card-gpu-s");
+  if (gpuSub && snap.gpu) {
+    const vramMB = (snap.gpu.vram_used / 1048576).toFixed(1);
+    const vramTotMB = (snap.gpu.vram_total / 1048576).toFixed(0);
+    const vramPart = snap.gpu.vram_total > 0 ? ` · 显存 ${vramMB}/${vramTotMB}M` : '';
+    gpuSub.textContent = `${snap.gpu.freq_mhz.toFixed(0)} MHz${vramPart}`;
+  }
+
+  // 2. 内存顶部卡片副标题 (体现 GPU 正在占用的内存)
+  const memSub = document.getElementById("card-mem-s");
+  if (memSub && snap.mem) {
+    const usedG = (snap.mem.used / 1073741824).toFixed(1);
+    const totG = (snap.mem.total / 1073741824).toFixed(1);
+    const gpuPart = snap.mem.gpu_used > 0 ? ` · 含显存 ${(snap.mem.gpu_used / 1048576).toFixed(1)}M` : '';
+    memSub.textContent = `${usedG}G / ${totG}G${gpuPart}`;
+  }
+
+  // 3. GPU 图表面板标题旁动态信息 (更新第 7 块面板 h2 em)
+  const gpuPanelEm = document.querySelector("#charts .panel:nth-child(7) h2 em");
+  if (gpuPanelEm && snap.gpu) {
+    const vramMB = (snap.gpu.vram_used / 1048576).toFixed(1);
+    const vramTotMB = (snap.gpu.vram_total / 1048576).toFixed(0);
+    const gttMB = (snap.gpu.gtt_used / 1048576).toFixed(1);
+    gpuPanelEm.textContent = `${snap.gpu.freq_mhz.toFixed(0)}MHz · 显存 ${vramMB}/${vramTotMB}MB (共享 ${gttMB}MB)`;
+  }
 }
 
 // 接收 SSE 实时推送快照（每 2 秒一次）
@@ -674,15 +714,12 @@ function onRealtimeSnapshot(snap) {
   setCard("cpu", snap.cpu.total, "%", 1);
   const gpuUsage = snap.gpu ? snap.gpu.usage_pct : 0;
   setCard("gpu", gpuUsage, "%", 1);
-  const gpuSub = document.getElementById("card-gpu-s");
-  if (gpuSub && snap.gpu) {
-    gpuSub.textContent = `${snap.gpu.freq_mhz.toFixed(0)} MHz · ${snap.gpu.temp_c > 0 ? snap.gpu.temp_c.toFixed(0) + '°C' : snap.gpu.model}`;
-  }
   setCard("steal", snap.cpu.steal, "%", 2);
   setCard("mem", snap.mem.pct, "%", 1);
   setCard("load", snap.cpu.load[0], "", 2);
   const rootMount = (snap.mounts || []).find(m => m.path === "/") || { pct: 0 };
   setCard("root", rootMount.pct, "%", 1);
+  updateSubtitles(snap);
 
   // 2. 将最新数据点实时推送到 8 块图表面板（追加模式）
   const ts = snap.ts;
@@ -779,15 +816,12 @@ async function refresh() {
     setCard("cpu", snap.cpu.total, "%", 1);
     const gpuUsageInit = snap.gpu ? snap.gpu.usage_pct : 0;
     setCard("gpu", gpuUsageInit, "%", 1);
-    const gpuSubInit = document.getElementById("card-gpu-s");
-    if (gpuSubInit && snap.gpu) {
-      gpuSubInit.textContent = `${snap.gpu.freq_mhz.toFixed(0)} MHz · ${snap.gpu.temp_c > 0 ? snap.gpu.temp_c.toFixed(0) + '°C' : snap.gpu.model}`;
-    }
     setCard("steal", snap.cpu.steal, "%", 2);
     setCard("mem", snap.mem.pct, "%", 1);
     setCard("load", snap.cpu.load[0], "", 2);
     const rootMount = (snap.mounts || []).find(m => m.path === "/") || { pct: 0 };
     setCard("root", rootMount.pct, "%", 1);
+    updateSubtitles(snap);
 
     await Promise.all(PANELS.map(async (p, i) => {
       const lines = await Promise.all(p.metrics.map(async (m, j) => {
@@ -801,6 +835,10 @@ async function refresh() {
 
         const res = await fetch(`/api/v1/history?metric=${key}&range=${currentRange}`).then(r => r.json()).catch(() => ({ points: [] }));
         const points = (res.points || []).map(pt => [pt.ts, pt.avg]);
+        if (points.length === 0 && snap) {
+          const curVal = extractSnapshotValue(snap, m.key);
+          points.push([snap.ts, curVal]);
+        }
         return {
           name: m.name,
           color: m.color,
